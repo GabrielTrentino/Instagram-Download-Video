@@ -1,0 +1,2 @@
+# O Instagram muda com frequência; mantenha o yt-dlp atualizado (pip install -U yt-dlp).
+yt-dlp>=2025.1.15

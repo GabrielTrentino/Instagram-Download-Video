@@ -23,10 +23,14 @@ Nada do que é baixado vai para o repositório:
 
 | O quê | Onde |
 | --- | --- |
-| Vídeos | Direto na pasta escolhida: `<pasta>/<perfil>_<data>_<id>.mp4` |
+| Vídeos | Direto na pasta escolhida: `<pasta>/<título do vídeo> [<id>].mp4` |
 | Histórico | `<pasta>/historico_downloads.json` |
 | Registro de já baixados | `<pasta>/.download_archive.txt` |
 | Preferências do app | `%APPDATA%\InstagramVideoDownloader\config.json` (Windows) ou `~/.config/InstagramVideoDownloader/` |
+
+O título é a primeira linha da legenda do post, sem hashtags, @menções e links, limitado a 80 caracteres (o
+Instagram não tem um campo de título próprio). O ID do post no final evita que vídeos com a mesma legenda se
+sobrescrevam. Posts sem legenda ficam como `<perfil>_<data> [<id>].mp4`.
 
 Tudo o que o app grava fica numa mesma pasta, escolhida por você: no primeiro uso o app pergunta onde gravar, e dá para trocar a qualquer momento no botão **Escolher…** (a sugestão inicial é `Vídeos\Instagram Downloads`). Em `%APPDATA%` fica apenas a lembrança de qual pasta você escolheu. O app **recusa** pastas de destino dentro do repositório e o
 `.gitignore` bloqueia vídeos, histórico e cookies como proteção extra. Cada pasta de destino tem o seu próprio

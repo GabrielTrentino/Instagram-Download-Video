@@ -14,6 +14,7 @@ from typing import Callable, Iterable
 from urllib.parse import urlsplit, urlunsplit
 
 from yt_dlp import YoutubeDL
+from yt_dlp.postprocessor import PostProcessor
 from yt_dlp.utils import DownloadCancelled
 
 from .config import Settings
@@ -21,12 +22,16 @@ from .history import History, HistoryEntry, format_size
 
 # Arquivo do yt-dlp que registra IDs já baixados (fica na pasta de destino).
 ARCHIVE_FILENAME = ".download_archive.txt"
-# Todos os vídeos ficam direto na pasta escolhida; o perfil vai no nome do arquivo.
-OUTPUT_TEMPLATE = "%(uploader_id,uploader|perfil_desconhecido)s_%(upload_date>%Y-%m-%d|sem_data)s_%(id)s.%(ext)s"
+# Todos os vídeos ficam direto na pasta escolhida; o nome vem de build_filename().
+OUTPUT_TEMPLATE = "%(nome_arquivo)s.%(ext)s"
+MAX_TITLE_LENGTH = 80
 
 _INSTAGRAM_HOSTS = {"instagram.com", "www.instagram.com", "m.instagram.com", "instagr.am", "www.instagr.am"}
 _SEPARATORS = re.compile(r"[\s,;]+")
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
+_CAPTION_NOISE = re.compile(r"https?://\S+|[#@][\w.]+")
+_INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_GENERIC_TITLE = re.compile(r"^(video|post|reel)\b.*\bby\b", re.IGNORECASE)
 
 
 def ffmpeg_available() -> bool:
@@ -128,6 +133,36 @@ def _uploader(info: dict) -> str:
     return ""
 
 
+def build_filename(info: dict) -> str:
+    """Nome do arquivo (sem extensão): título do vídeo seguido do ID do post.
+
+    O Instagram não tem título de verdade ("Video by perfil"), então o título é a primeira
+    linha da legenda sem hashtags, menções e links. O ID evita que legendas iguais se sobrescrevam.
+    """
+    title = ""
+    for line in (info.get("description") or "").splitlines():
+        line = " ".join(_CAPTION_NOISE.sub(" ", line).split())
+        if line:
+            title = line
+            break
+    if not title and info.get("title") and not _GENERIC_TITLE.match(info["title"]):
+        title = info["title"]
+    title = " ".join(_INVALID_FILENAME_CHARS.sub(" ", title).split())[:MAX_TITLE_LENGTH].rstrip(" .")
+    if not title:
+        date = info.get("upload_date") or ""
+        date = f"{date[:4]}-{date[4:6]}-{date[6:]}" if len(date) == 8 else "sem_data"
+        title = f"{_uploader(info) or 'perfil_desconhecido'}_{date}"
+    return f"{title} [{info.get('id') or 'sem_id'}]"
+
+
+class _FilenamePP(PostProcessor):
+    """Calcula o campo nome_arquivo usado em OUTPUT_TEMPLATE antes do download."""
+
+    def run(self, info: dict) -> tuple[list, dict]:
+        info["nome_arquivo"] = build_filename(info)
+        return [], info
+
+
 def _clean_error(exc: Exception) -> str:
     message = _ANSI.sub("", str(exc)).strip()
     message = re.sub(r"^ERROR:\s*", "", message)
@@ -190,6 +225,7 @@ class DownloadManager:
         logger = _QuietLogger()
         try:
             with YoutubeDL(self._ydl_options(job, files, logger)) as ydl:
+                ydl.add_post_processor(_FilenamePP(), when="pre_process")
                 info = ydl.extract_info(job.url, download=True)
         except DownloadCancelled:
             self._update(job, status=JobStatus.CANCELLED, speed="")

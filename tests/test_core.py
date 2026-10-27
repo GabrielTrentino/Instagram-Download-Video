@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from insta_downloader.config import APP_ROOT, Settings
-from insta_downloader.downloader import normalize_url, parse_sources
+from insta_downloader.downloader import build_filename, normalize_url, parse_sources
 from insta_downloader.history import HISTORY_FILENAME, History, HistoryEntry, format_size
 
 
@@ -30,6 +30,28 @@ class UrlParsingTests(unittest.TestCase):
         valid, invalid = parse_sources(text)
         self.assertEqual(valid, ["https://www.instagram.com/reel/AAA/", "https://www.instagram.com/p/BBB/"])
         self.assertEqual(invalid, ["nada-a-ver"])
+
+
+class FilenameTests(unittest.TestCase):
+    def test_uses_first_caption_line_without_hashtags_mentions_links(self):
+        info = {
+            "id": "DcY4rWNNrtb",
+            "title": "Video by fulano",
+            "description": "\n  Receita de bolo: cenoura #receita @fulano https://x.com/a  \nsegunda linha",
+        }
+        self.assertEqual(build_filename(info), "Receita de bolo cenoura [DcY4rWNNrtb]")
+
+    def test_truncates_long_titles(self):
+        name = build_filename({"id": "X", "description": "a" * 200})
+        self.assertEqual(name, "a" * 80 + " [X]")
+
+    def test_falls_back_to_profile_and_date_when_no_caption(self):
+        info = {"id": "X", "title": "Video by fulano", "uploader_id": "fulano", "upload_date": "20261027"}
+        self.assertEqual(build_filename(info), "fulano_2026-10-27 [X]")
+        self.assertEqual(build_filename({"id": "Y", "description": "#so #hashtags"}), "perfil_desconhecido_sem_data [Y]")
+
+    def test_uses_real_title_when_not_generic(self):
+        self.assertEqual(build_filename({"id": "Z", "title": "Meu vídeo"}), "Meu vídeo [Z]")
 
 
 class HistoryTests(unittest.TestCase):

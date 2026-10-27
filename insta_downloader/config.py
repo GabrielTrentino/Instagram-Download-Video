@@ -4,13 +4,23 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 APP_NAME = "InstagramVideoDownloader"
 
+def _app_root() -> Path:
+    if not getattr(sys, "frozen", False):
+        return Path(__file__).resolve().parent.parent
+    # Executável (PyInstaller): o código roda de uma pasta temporária, então a raiz é o
+    # repositório onde o .exe está (ex.: <repo>/dist/app.exe) ou, fora dele, a pasta do .exe.
+    exe_dir = Path(sys.executable).resolve().parent
+    return next((p for p in (exe_dir, *exe_dir.parents) if (p / ".git").exists()), exe_dir)
+
+
 # Raiz do repositório/aplicativo. Downloads e histórico nunca devem ficar aqui dentro.
-APP_ROOT = Path(__file__).resolve().parent.parent
+APP_ROOT = _app_root()
 
 
 def config_dir() -> Path:

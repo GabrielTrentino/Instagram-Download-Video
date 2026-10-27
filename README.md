@@ -51,6 +51,12 @@ python main.py
 
 Requer Python 3.10 ou superior.
 
+### Gerar executável (.exe)
+
+Dê dois cliques em **`gerar_executavel.bat`**. Ele instala o PyInstaller e gera
+`dist\InstagramDownloader.exe`, um arquivo único que roda sem precisar do Python instalado. As pastas `dist\` e
+`build\` ficam fora do repositório (`.gitignore`). Gere de novo sempre que quiser atualizar o yt-dlp embutido.
+
 ## Dicas
 
 - **Login**: o Instagram costuma bloquear downloads sem login. Faça login no Instagram em um navegador e escolha

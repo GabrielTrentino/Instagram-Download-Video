@@ -1,6 +1,13 @@
 """Ponto de entrada: python main.py"""
 
+import os
 import sys
+
+# Executável sem console (pythonw/PyInstaller --windowed) não tem stdout/stderr, e o yt-dlp
+# escreve neles em alguns casos.
+for _name in ("stdout", "stderr"):
+    if getattr(sys, _name) is None:
+        setattr(sys, _name, open(os.devnull, "w", encoding="utf-8"))
 
 try:
     from insta_downloader.gui import main
